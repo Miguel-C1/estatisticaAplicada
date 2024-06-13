@@ -174,7 +174,7 @@ results.to_csv('testes_normalidade.csv', index=False)
 
 
 
-dist_norml(data=data, columns=['Temp. Ins. (C)', 'Umi. Ins. (%)',  'Pto Orvalho Ins. (C)'])
+dist_norml(data=data, columns=['Temp. Ins. (C)', 'Pto Orvalho Max. (C)',  'Pressao Ins. (hPa)'])
 
 
 # ['Data', 'Hora (UTC)', 'Temp. Ins. (C)', 'Temp. Max. (C)',
