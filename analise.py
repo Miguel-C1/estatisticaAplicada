@@ -85,6 +85,16 @@ def dist_norml_by_month(data: pd.DataFrame, columns=None):
             plt.ylabel('Densidade')
             plt.show()
 
+
+def normality_tests(column_data):
+    stat, p_shapiro = shapiro(column_data)
+    stat, p_normaltest = normaltest(column_data)
+    stat, p_kstest = kstest(column_data, 'norm', args=(mean[column_data.name], std_dev[column_data.name]))
+    
+    return p_shapiro, p_normaltest, p_kstest
+
+
+
 # Aplicar a função de limpeza em todas as colunas numéricas
 for column in data.columns[2:]:  # Ignora as duas primeiras colunas que são Data e Hora
     data[column] = data[column].apply(clean_data)
@@ -104,14 +114,14 @@ def analise_desc(numeric_data: pd.DataFrame):
     quartiles = numeric_data.quantile([0.25, 0.5, 0.75])
 
 
-    print(f"Média: \n{mean}\n")
-    print(f"Mediana: \n{median}\n")
-    print(f"Moda: \n{mode}\n")
-    print(f"Desvio Padrão: \n{std_dev}\n")
-    print(f"Variância: \n{variance}\n")
-    print(f"Curtose: \n{kurtosis}\n")
-    print(f"Assimetria: \n{skewness}\n")
-    print(f"Quartis: \n{quartiles}\n")
+    #print(f"Média: \n{mean}\n")
+    #print(f"Mediana: \n{median}\n")
+    #print(f"Moda: \n{mode}\n")
+    #print(f"Desvio Padrão: \n{std_dev}\n")
+    #print(f"Variância: \n{variance}\n")
+    #print(f"Curtose: \n{kurtosis}\n")
+    #print(f"Assimetria: \n{skewness}\n")
+    #print(f"Quartis: \n{quartiles}\n")
 
     # Criar DataFrame com estatísticas descritivas
     desc_stats = pd.DataFrame({
@@ -133,28 +143,38 @@ def analise_desc(numeric_data: pd.DataFrame):
 
 mean, std_dev = analise_desc(numeric_data)
 
-# Testes de Normalidade
-def normality_tests(column_data):
-    stat, p_shapiro = shapiro(column_data)
-    stat, p_normaltest = normaltest(column_data)
-    stat, p_kstest = kstest(column_data, 'norm', args=(mean[column_data.name], std_dev[column_data.name]))
-    
-    return p_shapiro, p_normaltest, p_kstest
 
+# Criar lista para armazenar resultados dos testes de normalidade
+results_list = []
+
+# Iterar sobre cada coluna numérica
 for column in data.columns[2:]:
     p_shapiro, p_normaltest, p_kstest = normality_tests(data[column])
-    print(f"Resultados dos testes de normalidade para {column}:\n")
-    print(f"Shapiro-Wilk: p-value = {p_shapiro}")
-    print(f"D'Agostino-Pearson: p-value = {p_normaltest}")
-    print(f"Kolmogorov-Smirnov: p-value = {p_kstest}\n")
+    
+    # Adicionar resultados à lista
+    results_list.append({
+        'Coluna': column,
+        'Shapiro-Wilk p-value': p_shapiro,
+        'D\'Agostino-Pearson p-value': p_normaltest,
+        'Kolmogorov-Smirnov p-value': p_kstest
+    })
+
+# Criar DataFrame a partir da lista de resultados
+results = pd.DataFrame(results_list)
+
+# Salvar resultados em um arquivo CSV
+results.to_csv('testes_normalidade.csv', index=False)
+
+# Salvar resultados em um arquivo CSV
+results.to_csv('testes_normalidade.csv', index=False)
 
 # Padronização
-data_standardized = (data[data.columns[2:]] - mean) / std_dev
-print(data_standardized.head())
+#data_standardized = (data[data.columns[2:]] - mean) / std_dev
+#print(data_standardized.head())
 
 
 
-#dist_norml(data=data, columns=['Temp. Ins. (C)', 'Temp. Max. (C)', 'Temp. Min. (C)'])
+dist_norml(data=data, columns=['Temp. Ins. (C)', 'Umi. Ins. (%)',  'Pto Orvalho Ins. (C)'])
 
 
 # ['Data', 'Hora (UTC)', 'Temp. Ins. (C)', 'Temp. Max. (C)',
