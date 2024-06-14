@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.stats import norm, shapiro, normaltest, kstest, f_oneway
-
+import dist_norml
 # Função para limpar e converter os dados
 def clean_data(value):
     if isinstance(value, str):
@@ -16,75 +16,9 @@ def clean_data(value):
         return value
 
 # Carregar os dados do arquivo CSV corrigido
-data = pd.read_csv('BAHIA_BELMONTE_clean.csv', delimiter=';', decimal=',')
-
-def dist_norml(data: pd.DataFrame, columns=None):
-    if columns is None:
-        columns = data.columns[2:]  # Seleciona todas as colunas numéricas após as duas primeiras
-
-    for column in columns:
-        sns.histplot(data[column], stat="density", linewidth=0)
-        mean = data[column].mean()
-        std_dev = data[column].std()
-        xmin, xmax = plt.xlim()
-        x = np.linspace(xmin, xmax, 100)
-        p = norm.pdf(x, mean, std_dev)
-        plt.plot(x, p, 'k', linewidth=2)
-        title = f"Distribuição Normal: {column}"
-        plt.title(title)
-        plt.xlabel(column)
-        plt.ylabel('Densidade')
-        plt.show()
-
-def dist_norml_prd(data_standardized: pd.DataFrame, columns=None):
-    if columns is None:
-        columns = data_standardized.columns  # Seleciona todas as colunas numéricas
-
-    for column in columns:
-        sns.histplot(data_standardized[column], kde=True, stat="density", linewidth=0)
-        xmin, xmax = plt.xlim()
-        x = np.linspace(xmin, xmax, 100)
-        p = norm.pdf(x, 0, 1)  # Média 0 e desvio padrão 1 para distribuição normal padrão
-        plt.plot(x, p, 'k', linewidth=2)
-        title = f"Distribuição Normal Padronizada: {column}"
-        plt.title(title)
-        plt.xlabel(column)
-        plt.ylabel('Densidade')
-        plt.show()
-
-# Função para visualizar distribuição normal por mês
-def dist_norml_by_month(data: pd.DataFrame, columns=None):
-    
-    if columns is None:
-        columns = data.columns[2:]
-        
-    # Converter a coluna de data para datetime
-    data['Data'] = pd.to_datetime(data['Data'], format='%d/%m/%Y')
-    
-    # Extrair o mês da data
-    data['Mês'] = data['Data'].dt.month_name()
-
-    # Loop pelos meses únicos
-    unique_months = data['Mês'].unique()
-    for month in unique_months:
-        month_data = data[data['Mês'] == month]
-
-        # Selecionar colunas numéricas após as duas primeiras
-
-        for column in columns:
-            sns.histplot(month_data[column], stat="density", linewidth=0)
-            mean = month_data[column].mean()
-            std_dev = month_data[column].std()
-            xmin, xmax = plt.xlim()
-            x = np.linspace(xmin, xmax, 100)
-            p = norm.pdf(x, mean, std_dev)
-            plt.plot(x, p, 'k', linewidth=2)
-            title = f"Distribuição Normal - {month}: {column}"
-            plt.title(title)
-            plt.xlabel(column)
-            plt.ylabel('Densidade')
-            plt.show()
-
+#data = pd.read_csv('sp_tb_clean.csv', delimiter=';', decimal=',')
+#data = pd.read_csv('BAHIA_BELMONTE_clean.csv', delimiter=';', decimal=',')
+data = pd.read_csv('SAO_PAULO_TAUBATE_clean.csv', delimiter=';', decimal=',')
 
 def normality_tests(column_data):
     stat, p_shapiro = shapiro(column_data)
@@ -101,7 +35,12 @@ for column in data.columns[2:]:  # Ignora as duas primeiras colunas que são Dat
 
 numeric_data = data.iloc[:, 2:]  # Seleciona apenas as colunas numéricas após as duas primeiras
 
-def analise_desc(numeric_data: pd.DataFrame):
+# analise descritiva de apenas uma deterinada semana
+numeric_data_semn = data.loc[(data['Data'] >= '01/03/2024') & (data['Data'] <= '07/03/2024')].iloc[:, 2:]
+
+
+
+def analise_desc(numeric_data: pd.DataFrame, nome_arquivo='analise_descritiva.csv'):
     # Análise Descritiva
     mean = numeric_data.mean()
     median = numeric_data.median()
@@ -112,8 +51,6 @@ def analise_desc(numeric_data: pd.DataFrame):
     skewness = numeric_data.skew()
 
     quartiles = numeric_data.quantile([0.25, 0.5, 0.75])
-
-
     #print(f"Média: \n{mean}\n")
     #print(f"Mediana: \n{median}\n")
     #print(f"Moda: \n{mode}\n")
@@ -137,19 +74,31 @@ def analise_desc(numeric_data: pd.DataFrame):
         '3º Quartil': quartiles.loc[0.75]
     })
     # Salvar DataFrame em um arquivo CSV
-    desc_stats.to_csv('analise_descritiva.csv', index=True)
+    desc_stats.to_csv(nome_arquivo, index=True)
     
     return mean, std_dev
 
 mean, std_dev = analise_desc(numeric_data)
 
+analise_desc(numeric_data=numeric_data_semn, nome_arquivo='analise_descritiva_semana.csv')
+
+def create_boxplot(data: pd.DataFrame, columns=None):
+
+    if columns is None:
+        columns = data.columns[2:]
+    # Boxplot
+    plt.figure(figsize=(12, 8))
+    sns.boxplot(data=data[columns], orient='h', )
+    plt.title('Boxplot das Variáveis Numéricas')
+    plt.xlabel('Valor')
+    plt.show()
 
 # Criar lista para armazenar resultados dos testes de normalidade
 results_list = []
 
 # Iterar sobre cada coluna numérica
 for column in data.columns[2:]:
-    p_shapiro, p_normaltest, p_kstest = normality_tests(data[column])
+    p_shapiro, p_normaltest, p_kstest = normality_tests(numeric_data_semn[column])
     
     # Adicionar resultados à lista
     results_list.append({
@@ -163,19 +112,29 @@ for column in data.columns[2:]:
 results = pd.DataFrame(results_list)
 
 # Salvar resultados em um arquivo CSV
-results.to_csv('testes_normalidade.csv', index=False)
-
-# Salvar resultados em um arquivo CSV
-results.to_csv('testes_normalidade.csv', index=False)
-
-# Padronização
-#data_standardized = (data[data.columns[2:]] - mean) / std_dev
-#print(data_standardized.head())
+results.to_csv('testes_normalidade_semanal.csv', index=False)
 
 
+# dist_norml.dist_norml(data=data, columns=['Temp. Ins. (C)', 
+#                                'Temp. Max. (C)',
+#                                  'Temp. Min. (C)',
+#                                 'Pto Orvalho Ins. (C)',
+#                                'Pto Orvalho Max. (C)',
+#                                'Pto Orvalho Min. (C)',
+#                                'Pressao Ins. (hPa)'])
 
-dist_norml(data=data, columns=['Temp. Ins. (C)', 'Pto Orvalho Max. (C)',  'Pressao Ins. (hPa)'])
+# dist_norml.dist_norml_by_month(data=data, columns=['Temp. Ins. (C)', 
+#                                'Temp. Max. (C)',
+#                                  'Temp. Min. (C)',
+#                                 'Pto Orvalho Ins. (C)',
+#                                'Pto Orvalho Max. (C)',
+#                                'Pto Orvalho Min. (C)',
+#                                'Pressao Ins. (hPa)'])
 
+create_boxplot(data, columns=['Temp. Ins. (C)', 'Temp. Max. (C)', 'Temp. Min. (C)'])
+#create_boxplot(data, columns=['Umi. Ins. (%)', 'Umi. Max. (%)', 'Umi. Min. (%)'])
+#create_boxplot(data, columns=['Pto Orvalho Ins. (C)', 'Pto Orvalho Max. (C)', 'Pto Orvalho Min. (C)'])
+create_boxplot(data, columns=['Pressao Ins. (hPa)', 'Pressao Max. (hPa)', 'Pressao Min. (hPa)'])
 
 # ['Data', 'Hora (UTC)', 'Temp. Ins. (C)', 'Temp. Max. (C)',
 #       'Temp. Min. (C)', 'Umi. Ins. (%)', 'Umi. Max. (%)', 'Umi. Min. (%)',   
